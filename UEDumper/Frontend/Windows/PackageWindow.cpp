@@ -12,7 +12,6 @@
 #include "Engine/Generation/MDK.h"
 #include "Engine/Generation/SDK.h"
 #include "Frontend/Fonts/fontAwesomeHelper.h"
-#include "Resources/Dumpspace/dumpspace.h"
 
 void windows::PackageWindow::renderUndefinedStructs()
 {
@@ -55,7 +54,7 @@ void windows::PackageWindow::copyPackageNames()
 		names += package.packageName + "\n";
 	}
 	IGHelper::copyToClipBoard(names);
-	LogWindow::Log(windows::LogWindow::log_2, "PACKAGE", "Copied Package names to clipboard!");
+	LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGE", "Copied Package names to clipboard!");
 
 }
 
@@ -83,18 +82,18 @@ bool windows::PackageWindow::render()
 			const bool is_selected = (packagePicked == i);
 			if (ImGui::Selectable(packages[i].packageName.c_str(), is_selected))
 			{
-				LogWindow::Log(windows::LogWindow::log_2, "PACKAGE", "opening package %d", packagePicked);
+				LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_ONLY_LOG, "PACKAGE", "opening package %d", packagePicked);
 				packagePicked = i;
 				if (packages[i].structs.size() > 0)
-					PackageViewerWindow::createTab(&packages[i].structs[0], EngineCore::ObjectInfo::OI_Struct);
+					PackageViewerWindow::createTab(&packages[i].structs[0], ObjectInfo::OI_Struct);
 				else if (packages[i].classes.size() > 0)
-					PackageViewerWindow::createTab(&packages[i].classes[0], EngineCore::ObjectInfo::OI_Class);
+					PackageViewerWindow::createTab(&packages[i].classes[0], ObjectInfo::OI_Class);
 				else if (packages[i].functions.size() > 0)
-					PackageViewerWindow::createTab(&packages[i].functions[0], EngineCore::ObjectInfo::OI_Function);
+					PackageViewerWindow::createTab(&packages[i].functions[0], ObjectInfo::OI_Function);
 				else if (packages[i].enums.size() > 0)
-					PackageViewerWindow::createTab(&packages[i].enums[0], EngineCore::ObjectInfo::OI_Enum);
+					PackageViewerWindow::createTab(&packages[i].enums[0], ObjectInfo::OI_Enum);
 				else
-					LogWindow::Log(windows::LogWindow::log_2, "PACKAGE", "failed to open package: package is empty!");
+					LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_WARNING, "PACKAGE", "failed to open package: package is empty!");
 
 			}
 			if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
@@ -115,12 +114,12 @@ bool windows::PackageWindow::render()
 				SDKGeneration::printCredits(file);
 				file << "/// Package " + packages[packagePicked].packageName << ".\n\n";
 				SDKGeneration::generatePackage(file, packages[packagePicked]);
-				LogWindow::Log(LogWindow::log_2, "PACKAGE", "Saved Package %s to disk!", packages[packagePicked].packageName.c_str());
+				LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGE", "Saved Package %s to disk!", packages[packagePicked].packageName.c_str());
 			}
 			if (ImGui::Button("Copy package name"))
 			{
 				IGHelper::copyToClipBoard(packages[packagePicked].packageName);
-				LogWindow::Log(LogWindow::log_2, "PACKAGE", "Copied Package name to clipboard!");
+				LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGE", "Copied Package name to clipboard!");
 			}
 			ImGui::EndPopup();
 		}
@@ -132,12 +131,12 @@ bool windows::PackageWindow::render()
 	if (ImGui::InputTextWithHint("##CNameSearchBox", "Search for Object...", CNameSearch, sizeof(CNameSearch) - 1, ImGuiInputTextFlags_EnterReturnsTrue) &&
 		!PackageViewerWindow::openTabFromCName(std::string(CNameSearch)))
 	{
-		LogWindow::Log(LogWindow::log_2, "PACKAGEWINDOW", "%s not found! Searching for name is case-sensitive!", CNameSearch);
+		LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "%s not found! Searching for name is case-sensitive!", CNameSearch);
 	}
 	ImGui::SameLine();
-	if (ImGui::Button(ICON_FA_SEARCH) && !PackageViewerWindow::openTabFromCName(std::string(CNameSearch)))
+	if (ImGui::Button(ICON_FA_MAGNIFYING_GLASS) && !PackageViewerWindow::openTabFromCName(std::string(CNameSearch)))
 	{
-		LogWindow::Log(LogWindow::log_2, "PACKAGEWINDOW", "%s not found! Searching for name is case-sensitive!", CNameSearch);
+		LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "%s not found! Searching for name is case-sensitive!", CNameSearch);
 	}
 	ImGui::PopItemWidth();
 	ImGui::EndChild();
@@ -155,9 +154,9 @@ void windows::PackageWindow::renderEditPopup()
 	if (ImGui::Button(merge(ICON_FA_QUESTION, " Get Undefined Structs")))
 	{
 		std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, [] {
-			LogWindow::Log(windows::LogWindow::log_2, "PACKAGEWINDOW", "Getting undefined structs...");
+			LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "Getting undefined structs...");
 			EngineCore::getAllUnknownTypes();
-			LogWindow::Log(windows::LogWindow::log_2, "PACKAGEWINDOW", "Done!");
+			LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "Done!");
 			showUndefinedStructs = true;
 			}))).reset();
 	}
@@ -211,7 +210,7 @@ void windows::PackageWindow::renderProjectPopup()
 
 					if (EngineCore::loadProject(st, anyProgressDone, anyProgressTotal))
 					{
-						windows::LogWindow::Log(windows::LogWindow::log_2, "ENGINECORE", "Project loaded!");
+						windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "ENGINECORE", "Project loaded!");
 						HelloWindow::setCompleted();
 					}
 					presentTopMostCallback = false;
@@ -255,29 +254,29 @@ void windows::PackageWindow::renderProjectPopup()
 	}
 
 
-	if (ImGui::Button(merge(ICON_FA_DOWNLOAD, " Generate Legacy SDK")))
+	ImGui::PushStyleColor(ImGuiCol_Text, IGHelper::Colors::yellow);
+	if (ImGui::Button(merge(ICON_FA_DOWNLOAD, " Generate SDK")))
 	{
 		presentTopMostCallback = true;
 		anyProgressDone = 0;
 		anyProgressTotal = 1;
 		std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, [] {
-			LogWindow::Log(LogWindow::log_2, "PACKAGEWINDOW", "Creating SDK...");
+			LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "Creating SDK...");
 			SDKGeneration::Generate(anyProgressDone, anyProgressTotal);
-			LogWindow::Log(LogWindow::log_2, "PACKAGEWINDOW", "Done!");
+			LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "Done!");
 			presentTopMostCallback = false;
 			}))).reset();
 	}
-	ImGui::PushStyleColor(ImGuiCol_Text, IGHelper::Colors::yellow);
-	if (ImGui::Button(merge(ICON_FA_DOWNLOAD, " Generate NEW MDK")))
+	if (ImGui::Button(merge(ICON_FA_DOWNLOAD, " Generate MDK")))
 	{
 		presentTopMostCallback = true;
 		anyProgressDone = 0;
 		anyProgressTotal = 1;
 		std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, [] {
-			LogWindow::Log(LogWindow::log_2, "PACKAGEWINDOW", "Creating MDK...");
+			LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "Creating MDK...");
 			MDKGeneration::MDKGeneration();
 			MDKGeneration::generate(anyProgressDone, anyProgressTotal);
-			LogWindow::Log(LogWindow::log_2, "PACKAGEWINDOW", "Done!");
+			LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "Done!");
 			presentTopMostCallback = false;
 			}))).reset();
 	}
@@ -289,7 +288,7 @@ void windows::PackageWindow::renderProjectPopup()
 		ImGui::BeginTooltip();
 		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
 		ImGui::TextUnformatted("The MDK files are a new SDK-type resolving all dependency errors and missing structs, so you never have a incomplete SDK. "
-						 "You can straight up put it into your project with the MDK library (found on my github). Try it out!");
+			"You can straight up put it into your project with the MDK library (found on my github). Try it out!");
 		ImGui::PopTextWrapPos();
 		ImGui::EndTooltip();
 	}
@@ -299,9 +298,9 @@ void windows::PackageWindow::renderProjectPopup()
 		anyProgressDone = 0;
 		anyProgressTotal = 1;
 		std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, [] {
-			LogWindow::Log(LogWindow::log_2, "PACKAGEWINDOW", "Creating Dumpspace files...");
+			LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "Creating Dumpspace files...");
 			Dumpspace::Generate(anyProgressDone, anyProgressTotal);
-			LogWindow::Log(LogWindow::log_2, "PACKAGEWINDOW", "Done!");
+			LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "Done!");
 			presentTopMostCallback = false;
 			}))).reset();
 	}
@@ -311,9 +310,9 @@ void windows::PackageWindow::renderProjectPopup()
 		anyProgressDone = 0;
 		anyProgressTotal = 1;
 		std::make_unique<std::future<void>*>(new auto(std::async(std::launch::async, [] {
-			LogWindow::Log(LogWindow::log_2, "PACKAGEWINDOW", "Creating FNames file...");
+			LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "Creating FNames file...");
 			EngineCore::generateFNameFile(anyProgressDone, anyProgressTotal);
-			LogWindow::Log(LogWindow::log_2, "PACKAGEWINDOW", "Done!");
+			LogWindow::Log(LogWindow::logLevels::LOGLEVEL_INFO, "PACKAGEWINDOW", "Done!");
 			presentTopMostCallback = false;
 			}))).reset();
 	}
@@ -324,7 +323,7 @@ void windows::PackageWindow::renderProjectPopup()
 		ImGui::BeginTooltip();
 		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
 		ImGui::TextUnformatted("This will generate the FNames.txt file with all the names found that are paired to objects. "
-						 "This aso means that if a UObject didnt use for example fname index 1, there wont be that name in the dump.");
+			"This aso means that if a UObject didnt use for example fname index 1, there wont be that name in the dump.");
 		ImGui::PopTextWrapPos();
 		ImGui::EndTooltip();
 	}

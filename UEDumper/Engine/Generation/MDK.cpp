@@ -62,7 +62,7 @@ void MDKGeneration::generateBasicType()
 
 	for (const auto& missingDef : noDefs)
 	{
-		windows::LogWindow::Log(windows::LogWindow::log_2, "MDK GEN", "Info: Missing definition for struct %s", missingDef.c_str());
+		windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MDK GEN", "Info: Missing definition for struct %s", missingDef.c_str());
 		BasicType << "//TODO: Define " << missingDef << "!\n\n\n";
 	}
 
@@ -141,7 +141,7 @@ void MDKGeneration::generatePackage(std::ofstream& stream, const EngineStructs::
 			std::unordered_map<std::string, int> alreadyDefinedMembers{};
 
 
-			for (const auto& member : struc->cookedMembers)
+			for (const auto& member : struc->definedMembers)
 			{
 				if (member.missed)
 					continue;
@@ -230,16 +230,23 @@ void MDKGeneration::generatePackage(std::ofstream& stream, const EngineStructs::
 		char buf[100] = { 0 };
 		sprintf_s(buf, "Size: 0x%02d", enu.members.size());
 		stream << "/// " << buf << std::endl;
-		stream << "enum " << enu.cppName << " : " << enu.type << std::endl;
+		stream << "enum class " << enu.cppName << " : " << enu.type << std::endl;
 		stream << "{" << std::endl;
+
 		int j = 0;
-		int i = 0;
+		std::vector<std::string> usedNames{ "float", "int", "bool", "double", "long", "char"};
+
 		for (const auto& member : enu.members)
 		{
 			j++;
 			char memberBuf[300];
 
-			std::string fir = member.first + std::to_string(i++);
+			std::string fir = member.first;
+
+			if (std::ranges::find(usedNames, fir) != usedNames.end())
+				fir += std::to_string(j);
+
+			usedNames.push_back(fir);
 
 			sprintf_s(memberBuf, "	%-80s = %d%s", fir.c_str(), member.second, j == enu.members.size() ? "" : ",");
 			stream << memberBuf << std::endl;
@@ -257,7 +264,7 @@ void MDKGeneration::generate(int& progressDone, int& totalProgress)
 {
 	progressDone = 0;
 	totalProgress = 10;
-	windows::LogWindow::Log(windows::LogWindow::log_2, "MDK GEN", "Baking MDK...");
+	windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MDK GEN", "Baking MDK...");
 
 	SDKPath = EngineSettings::getWorkingDirectory() / "MDK";
 	if (!create_directories(SDKPath))
@@ -324,7 +331,7 @@ void MDKGeneration::generate(int& progressDone, int& totalProgress)
 
 	bool anyMergeFound = false;
 
-	windows::LogWindow::Log(windows::LogWindow::log_2, "MDK GEN", "Merging packages...");
+	windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MDK GEN", "Merging packages...");
 	do
 	{
 		progressDone = 0;
@@ -346,7 +353,7 @@ void MDKGeneration::generate(int& progressDone, int& totalProgress)
 					if (std::ranges::find(pack.mergedPackages, neighbourNeighbour) == pack.mergedPackages.end())
 						continue;
 
-					windows::LogWindow::Log(windows::LogWindow::log_2, "MDK GEN",
+					windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MDK GEN",
 						"merge found with %s and %s origin %s", neighbour->packageName.c_str(), neighbourNeighbour->packageName.c_str(), pack.package.packageName.c_str());
 
 					anyMergeFound = true;
@@ -404,7 +411,7 @@ void MDKGeneration::generate(int& progressDone, int& totalProgress)
 	progressDone = 0;
 	totalProgress = newPackages.size();
 
-	windows::LogWindow::Log(windows::LogWindow::log_2, "MDK GEN", "Eliminating double merges....");
+	windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MDK GEN", "Eliminating double merges....");
 	bool eraseDone = false;
 	do
 	{
@@ -429,7 +436,7 @@ void MDKGeneration::generate(int& progressDone, int& totalProgress)
 				if (p.mergedPackages != p1.mergedPackages)
 					continue;
 
-				windows::LogWindow::Log(windows::LogWindow::log_2, "MDK GEN",
+				windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MDK GEN",
 					"deleted %s because its same to %s", p1.package.packageName.c_str(), p.package.packageName.c_str());
 
 				//delete p1 package
@@ -446,7 +453,7 @@ void MDKGeneration::generate(int& progressDone, int& totalProgress)
 
 	progressDone = 0;
 	totalProgress = newPackages.size();
-	windows::LogWindow::Log(windows::LogWindow::log_2, "MDK GEN", "Reordering structs");
+	windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MDK GEN", "Reordering structs");
 
 	bool didReordering = false;
 	do
@@ -483,6 +490,7 @@ void MDKGeneration::generate(int& progressDone, int& totalProgress)
 							continue;
 						}
 						//move up
+						didReordering = true;
 						auto it = *neededIt;
 						orderedStructsAndClasses.erase(neededIt);
 						orderedStructsAndClasses.insert(currentIt, it);
@@ -503,7 +511,7 @@ void MDKGeneration::generate(int& progressDone, int& totalProgress)
 	} while (didReordering);
 
 
-	windows::LogWindow::Log(windows::LogWindow::log_2, "MDK GEN", "Reordering packages");
+	windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MDK GEN", "Reordering packages");
 	std::vector<MergedPackage*> orderedPackages;
 
 	do
@@ -513,7 +521,7 @@ void MDKGeneration::generate(int& progressDone, int& totalProgress)
 		for (auto& p : newPackages)
 		{
 			progressDone++;
-			windows::LogWindow::Log(windows::LogWindow::log_2, "MDK GEN", "fixing package imports of %s", p.package.packageName.c_str());
+			windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MDK GEN", "fixing package imports of %s", p.package.packageName.c_str());
 			auto currentPackageIt = std::ranges::find(
 				orderedPackages, &p);
 
@@ -578,7 +586,7 @@ void MDKGeneration::generate(int& progressDone, int& totalProgress)
 	progressDone = 0;
 	for (auto& pack : orderedPackages)
 	{
-		windows::LogWindow::Log(windows::LogWindow::log_2, "MDK GEN", "Baking package %s", pack->package.packageName.c_str());
+		windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MDK GEN", "Baking package %s", pack->package.packageName.c_str());
 		masterHeader << "#include \"MDK/" + pack->package.packageName + ".h\"" << std::endl;
 		if (pack->package.packageName == "BasicType")
 			generateBasicType();

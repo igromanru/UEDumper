@@ -7,41 +7,41 @@
 
 Memory::Memory()
 {
-	windows::LogWindow::Log(windows::LogWindow::log_0, "MEMORY", "Initializing memory class...");
+	windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_ONLY_LOG, "MEMORY", "Initializing memory class...");
 	//only call the init function if status is bad
-	if(status == bad)
+	if (status == bad)
 	{
 		//call the init function
 		init();
 
 		//set the status to inizilized
 		status = inizilaized;
-		windows::LogWindow::Log(windows::LogWindow::log_0, "MEMORY", "Initialized Memory class!");
+		windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MEMORY", "Initialized Memory class!");
 	}
-	
+
 }
 
 Memory::LoadError Memory::load(std::string processName)
 {
 	//should not happen!
-	if(status == bad) DebugBreak();
+	if (status == bad) DebugBreak();
 
 	//only call the load function if the status is initialized
-	if(status == inizilaized)
+	if (status == inizilaized)
 	{
 		loadData(processName, baseAddress, processID);
 
 		if (!baseAddress) {
-			windows::LogWindow::Log(windows::LogWindow::log_2, "MEMORY", "Error getting base address!");
+			windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_ERROR, "MEMORY", "Error getting base address!");
 			return noBaseAddress;
 		}
 
 		if (!processID) {
-			windows::LogWindow::Log(windows::LogWindow::log_2, "MEMORY", "Error getting process ID!");
+			windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_ERROR, "MEMORY", "Error getting process ID!");
 			return noProcessID;
 		}
 
-		windows::LogWindow::Log(windows::LogWindow::log_0, "MEMORY", "Loaded Memory class!");
+		windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MEMORY", "Loaded Memory class!");
 	}
 
 	status = loaded;
@@ -59,19 +59,19 @@ Memory::LoadError Memory::load(int processPID)
 		baseAddress = _getBaseAddress(nullptr, processPID);
 
 		if (!baseAddress) {
-			windows::LogWindow::Log(windows::LogWindow::log_2, "MEMORY", "Error getting base address!");
+			windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_ERROR, "MEMORY", "Error getting base address!");
 			return noBaseAddress;
 		}
 
 		processID = processPID;
 		if (!processID) {
-			windows::LogWindow::Log(windows::LogWindow::log_2, "MEMORY", "Error getting process ID!");
+			windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_ERROR, "MEMORY", "Error getting process ID!");
 			return noProcessID;
 		}
 
 		attachToProcess(processID);
 
-		windows::LogWindow::Log(windows::LogWindow::log_0, "MEMORY", "Loaded Memory class!");
+		windows::LogWindow::Log(windows::LogWindow::logLevels::LOGLEVEL_INFO, "MEMORY", "Loaded Memory class!");
 	}
 
 	status = loaded;
@@ -80,7 +80,7 @@ Memory::LoadError Memory::load(int processPID)
 
 void Memory::checkStatus()
 {
-	if(status != loaded) DebugBreak();
+	if (status != loaded) DebugBreak();
 }
 
 Memory::MemoryStatus Memory::getStatus()
@@ -148,13 +148,13 @@ uint64_t Memory::patternScan(int flag, const char* pattern, const std::string& m
 	if (patternMap.contains(pattern))
 		return patternMap[pattern];
 
-	if(!init)
+	if (!init)
 	{
 		init = true;
 
 		static IMAGE_DOS_HEADER dosHeader;
 		static IMAGE_NT_HEADERS ntHeaders;
-		
+
 		dosHeader = read<IMAGE_DOS_HEADER>(baseAddress);
 
 
@@ -189,7 +189,7 @@ uint64_t Memory::patternScan(int flag, const char* pattern, const std::string& m
 
 	const int length = virtualSize - mask.length();
 
-	for(int i = 0; i <= length; ++i)
+	for (int i = 0; i <= length; ++i)
 	{
 		char* addr = &textBuff[i];
 
@@ -197,7 +197,7 @@ uint64_t Memory::patternScan(int flag, const char* pattern, const std::string& m
 			continue;
 
 		const uint64_t uAddr = reinterpret_cast<uint64_t>(addr);
-		if(flag & OFFSET_SIG_RVA)
+		if (flag & OFFSET_SIG_RVA)
 		{
 			const auto res = vaStart + i + *reinterpret_cast<int*>(uAddr + 3) + 7;
 			patternMap.insert(std::pair(pattern, res));
