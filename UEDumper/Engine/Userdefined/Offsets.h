@@ -106,6 +106,7 @@ inline std::vector<Offset> setOffsets()
 
 	offsets.push_back({ OFFSET_SIGNATURE_FOLLOW | OFFSET_DS, "OFFSET_GNAMES", 0, "\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x4C\x8B\xC0\xC6\x05", "xxx????x????xxxxx" });
 	offsets.push_back({ OFFSET_SIGNATURE_FOLLOW | OFFSET_DS, "OFFSET_GOBJECTS", 0, "\x48\x8B\x05\x00\x00\x00\x00\x48\x8B\x0C\xC8\x48\x8D\x04\xD1\xEB\x02", "xxx????xxxxxxxxxx" });
+	offsets.push_back({ OFFSET_SIGNATURE_FOLLOW | OFFSET_DS, "OFFSET_GWORLD", 0, "\x4C\x8B\x2D\x00\x00\x00\x00\x48\x8B\x75", "xxx????xxx" });
 
 	// offsets.push_back({ OFFSET_ADDRESS | OFFSET_DS, "OFFSET_GNAMES", 0xDEADBEEF });
 	// offsets.push_back({ OFFSET_ADDRESS | OFFSET_DS, "OFFSET_GOBJECTS", 0xDEADBEEF });
